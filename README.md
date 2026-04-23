@@ -140,12 +140,13 @@ through `Config8`. Click an interval to filter counter samples to that config's 
 ```bash
 xctrace record \
   --template "CPU Counters" \
-  --counters L1D_CACHE_MISS_LD \
-  --counters L2_TLB_MISS_LD \
-  --counters INST_RETIRED \
   --output traces/manual.trace \
   --launch -- ./build/cache_conscious_O2
 ```
+
+Counter selection (`L1D_CACHE_MISS_LD`, `L2_TLB_MISS_LD`, `INST_RETIRED`) is
+configured inside Instruments.app after opening the trace — `xctrace record` does
+not accept counter names on the command line.
 
 ### Notes
 
