@@ -25,8 +25,8 @@
 #include <cstdint>
 
 // Subsystem and category visible in Instruments.app
-#define CC_SIGNPOST_SUBSYSTEM "dev.asbestossoup.cacheconscious"
-#define CC_SIGNPOST_CATEGORY  "benchmark"
+#define CC_SIGNPOST_SUBSYSTEM "com.cacheconscious.benchmark"
+#define CC_SIGNPOST_CATEGORY  "config"
 
 #if SIGNPOST_AVAILABLE
 
@@ -36,25 +36,29 @@ inline os_log_t ccSignpostLog() {
     return log;
 }
 
-// RAII interval: begins on construction, ends on destruction.
-// Usage:
-//   {
-//       SignpostInterval sp("Config 1 | N=10000");
-//       runConfig1(N);
-//   }  // interval ends here
+// RAII interval identifying config number, entity count, and build flags.
+// Begins on construction, ends on destruction — place around runBenchmark()
+// in each config file so the interval covers the measurement loop only
+// (not construction, warmup, or correctness phases).
+//
+// In Instruments.app CPU Counters timeline, each interval appears labelled
+// e.g. "Config3 N=1000000 -O2 -std=c++17" under subsystem
+// com.cacheconscious.benchmark / category config.
 class SignpostInterval {
 public:
-    explicit SignpostInterval(const char* name)
+    SignpostInterval(int configId, std::size_t entityCount, const char* buildFlags)
         : id_(os_signpost_id_generate(ccSignpostLog()))
-        , name_(name)
     {
         os_signpost_interval_begin(ccSignpostLog(), id_, CC_SIGNPOST_CATEGORY,
-                                   "begin: %s", name_);
+                                   "Config%d N=%zu %s",
+                                   configId,
+                                   entityCount,
+                                   buildFlags);
     }
 
     ~SignpostInterval() {
         os_signpost_interval_end(ccSignpostLog(), id_, CC_SIGNPOST_CATEGORY,
-                                 "end: %s", name_);
+                                 "end");
     }
 
     // Non-copyable
@@ -63,20 +67,14 @@ public:
 
 private:
     os_signpost_id_t id_;
-    const char*      name_;
 };
-
-// Convenience macro: opens a signpost interval for the remainder of the
-// current scope. Name must be a string literal (os_signpost requirement).
-#define CC_SIGNPOST(name) SignpostInterval _sp_##__LINE__(name)
 
 #else  // !SIGNPOST_AVAILABLE
 
 // Stubs for non-Apple platforms
 class SignpostInterval {
 public:
-    explicit SignpostInterval(const char*) {}
+    SignpostInterval(int, std::size_t, const char*) {}
 };
-#define CC_SIGNPOST(name) ((void)0)
 
 #endif  // SIGNPOST_AVAILABLE

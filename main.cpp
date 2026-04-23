@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "benchmark/configs/config_result.h"
-#include "benchmark/common/signpost.h"
 
 // BUILD_FLAGS_STR and BUILD_TAG are injected by CMake at compile time.
 // e.g. BUILD_FLAGS_STR="-O0 -std=c++17", BUILD_TAG="O0"
@@ -90,19 +89,11 @@ int main() {
         std::cout << "  Running correctness validation and timing...\n";
         std::cout.flush();
 
-        // Run all 8 configs.
-        // Each is wrapped in an os_signpost interval so xctrace / Instruments.app
-        // can slice CPU counter samples (L1D_CACHE_MISS_LD, L2_TLB_MISS_LD,
-        // INST_RETIRED) by config label.
+        // Run all 8 configs. Signpost intervals are emitted inside each
+        // runConfigN() around the measurement loop (see config_N.cpp).
         std::array<ConfigResult, 8> results = {
-            [&]{ CC_SIGNPOST("Config1"); return runConfig1(N); }(),
-            [&]{ CC_SIGNPOST("Config2"); return runConfig2(N); }(),
-            [&]{ CC_SIGNPOST("Config3"); return runConfig3(N); }(),
-            [&]{ CC_SIGNPOST("Config4"); return runConfig4(N); }(),
-            [&]{ CC_SIGNPOST("Config5"); return runConfig5(N); }(),
-            [&]{ CC_SIGNPOST("Config6"); return runConfig6(N); }(),
-            [&]{ CC_SIGNPOST("Config7"); return runConfig7(N); }(),
-            [&]{ CC_SIGNPOST("Config8"); return runConfig8(N); }(),
+            runConfig1(N), runConfig2(N), runConfig3(N), runConfig4(N),
+            runConfig5(N), runConfig6(N), runConfig7(N), runConfig8(N)
         };
 
         // Correctness validation: all configs must match config 1 (reference)

@@ -2,12 +2,18 @@
 #include "config_result.h"
 #include "../common/rng.h"
 #include "../common/timer.h"
+#include "../common/signpost.h"
 #include "../oop/world_aos.h"
+
+#ifndef BUILD_FLAGS_STR
+#  define BUILD_FLAGS_STR "unknown"
+#endif
 
 ConfigResult runConfig1(std::size_t N) {
     SpawnData spawn = generateSpawnData(N);
     WorldAoS world(spawn, /*grouped=*/false);
 
+    SignpostInterval sp(1, N, BUILD_FLAGS_STR);
     TimingResult timing = runBenchmark([&]{ world.tickVirtual(); });
 
     return ConfigResult{
