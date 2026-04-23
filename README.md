@@ -110,30 +110,51 @@ calls `std::mt19937(GLOBAL_SEED)` — the sequence is fully deterministic.
 
 ## Collecting L1/L2 Cache Miss Rates on macOS (Instruments.app)
 
-`perf stat` is not available on macOS/ARM64. Cache miss rates must be collected manually
-using Apple Instruments.
+`perf stat` is not available on macOS/ARM64. Cache miss rates are collected using
+Apple Instruments. The binaries emit `os_signpost` intervals (subsystem
+`dev.asbestossoup.cacheconscious`) around each config's run so Instruments can
+slice counter samples per config.
 
-### Option A: Instruments.app (GUI)
+### Option A: Collection script (recommended)
 
-1. Open **Instruments.app** (Xcode → Open Developer Tool → Instruments)
-2. Choose the **CPU Counters** template
-3. Select the `cache_conscious_O2` binary as the target
-4. Add counters: `L1D_CACHE_MISS_LD`, `L2_TLB_MISS_LD`, `INST_RETIRED`
-5. Record a run and inspect the counter timeline
+```bash
+./collect_cache_stats.sh          # uses build_test/ by default
+./collect_cache_stats.sh build/   # or specify your build directory
+```
 
-### Option B: xctrace (CLI)
+This runs `xctrace` for `cache_conscious_O0` and `cache_conscious_O2`, collecting
+`L1D_CACHE_MISS_LD`, `L2_TLB_MISS_LD`, and `INST_RETIRED`. Traces are written to
+`traces/cache_conscious_O0.trace` and `traces/cache_conscious_O2.trace`.
+
+Open a trace in Instruments.app:
+
+```bash
+open traces/cache_conscious_O2.trace
+```
+
+In the CPU Counters timeline, look for the signpost intervals labelled `Config1`
+through `Config8`. Click an interval to filter counter samples to that config's run.
+
+### Option B: Manual xctrace
 
 ```bash
 xctrace record \
   --template "CPU Counters" \
+  --counters L1D_CACHE_MISS_LD \
+  --counters L2_TLB_MISS_LD \
+  --counters INST_RETIRED \
+  --output traces/manual.trace \
   --launch -- ./build/cache_conscious_O2
 ```
 
-The resulting `.trace` file can be opened in Instruments.app for counter breakdown.
+### Notes
 
-**Note:** On M2 Max, hardware PMU counters are available per-core but require SIP
-partial relaxation or a signed profiling entitlement for process-level attribution.
-System Integrity Protection does not block Instruments.app usage for local profiling.
+- `os_signpost` is sampling-based: xctrace attributes counter *samples* that fall
+  inside each interval, not exact PMU deltas. Use interval boundaries as a filter
+  in the CPU Counters timeline for per-config attribution.
+- To list all counter names available on your machine: `instruments -s counters`
+- On M2 Max, SIP does not block local Instruments.app profiling.
+- Trace files are large; `traces/` is gitignored.
 
 ---
 
@@ -172,6 +193,7 @@ benchmark/
     rng.h           — Seeded RNG (std::mt19937, seed=42), generateSpawnData()
     simulation.h    — bounceUpdate() free function (shared by all 8 configs)
     timer.h         — std::chrono wrapper, runBenchmark() template
+    signpost.h      — os_signpost RAII wrapper for xctrace interval annotation
   oop/
     particle.h      — Particle base class + TaggedParticle + SpecificParticle
     world_aos.h/.cpp — AoS world (virtual + direct tick, grouped/ungrouped)
@@ -182,7 +204,8 @@ benchmark/
   configs/
     config_result.h — ConfigResult struct + forward declarations
     config_1.cpp through config_8.cpp — one translation unit per configuration
-main.cpp            — orchestration: validate correctness, time, write CSV
+main.cpp               — orchestration: validate correctness, time, write CSV
+collect_cache_stats.sh — xctrace collection script (L1D/L2/INST_RETIRED)
 CMakeLists.txt
 README.md
 ```

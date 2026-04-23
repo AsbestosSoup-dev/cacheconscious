@@ -3,3 +3,4 @@ cacheconscious_claude_code_plan.md
 build*/
 cmake-build-*/
 results_*.csv
+traces/
