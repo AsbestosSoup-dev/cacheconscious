@@ -1,0 +1,5 @@
+cacheconscious_claude_code_plan.md
+.idea/
+build*/
+cmake-build-*/
+results_*.csv
