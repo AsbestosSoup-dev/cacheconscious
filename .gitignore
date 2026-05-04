@@ -4,3 +4,10 @@ build*/
 cmake-build-*/
 results_*.csv
 traces/
+.DS_Store
+.claude/
+cache_stats.csv
+l1d_test.trace/
+l1d_test.xml
+parse_trace.py
+collect_cache_stats.sh

@@ -26,13 +26,13 @@
 
 // Subsystem and category visible in Instruments.app
 #define CC_SIGNPOST_SUBSYSTEM "com.cacheconscious.benchmark"
-#define CC_SIGNPOST_CATEGORY  "config"
 
 #if SIGNPOST_AVAILABLE
 
 // Lazily initialised log object — one per process.
 inline os_log_t ccSignpostLog() {
-    static os_log_t log = os_log_create(CC_SIGNPOST_SUBSYSTEM, CC_SIGNPOST_CATEGORY);
+    static os_log_t log = os_log_create(CC_SIGNPOST_SUBSYSTEM,
+                                        OS_LOG_CATEGORY_POINTS_OF_INTEREST);
     return log;
 }
 
@@ -49,7 +49,7 @@ public:
     SignpostInterval(int configId, std::size_t entityCount, const char* buildFlags)
         : id_(os_signpost_id_generate(ccSignpostLog()))
     {
-        os_signpost_interval_begin(ccSignpostLog(), id_, CC_SIGNPOST_CATEGORY,
+        os_signpost_interval_begin(ccSignpostLog(), id_, "BenchmarkConfig",
                                    "Config%d N=%zu %s",
                                    configId,
                                    entityCount,
@@ -57,8 +57,7 @@ public:
     }
 
     ~SignpostInterval() {
-        os_signpost_interval_end(ccSignpostLog(), id_, CC_SIGNPOST_CATEGORY,
-                                 "end");
+        os_signpost_interval_end(ccSignpostLog(), id_, "BenchmarkConfig", "");
     }
 
     // Non-copyable

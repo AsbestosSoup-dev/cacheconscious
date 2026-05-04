@@ -24,8 +24,9 @@ BUILD_DIR="${1:-build_test}"
 TRACE_DIR="traces"
 mkdir -p "$TRACE_DIR"
 
+# O0 is too slow under a profiler at 1M entities to be useful — trace O2 only.
+# O0 timing data is already in results_O0.csv from a direct run.
 BINARIES=(
-    "cache_conscious_O0"
     "cache_conscious_O2"
 )
 
@@ -51,8 +52,9 @@ for BIN in "${BINARIES[@]}"; do
     echo ""
 
     xctrace record \
-        --template "CPU Counters" \
+        --template "/Users/asbestossoup/Library/Application Support/Instruments/Templates/CacheConsciousL1DMissSampling.tracetemplate" \
         --output "$TRACE_PATH" \
+        --time-limit 20m \
         --launch -- "$BINARY_PATH"
 
     echo ""
