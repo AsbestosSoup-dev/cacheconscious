@@ -55,16 +55,16 @@ config_id,label,layout,dispatch,grouping,build_flags,entity_count,avg_tick_ms,st
 
 ## 8 Ablation Configurations
 
-| Config | Layout | Dispatch | Archetype Grouping | Label          |
-|--------|--------|----------|--------------------|----------------|
-| 1      | AoS    | Virtual  | Off                | Baseline OOP   |
-| 2      | AoS    | Virtual  | On                 |                |
-| 3      | AoS    | Direct   | Off                |                |
-| 4      | AoS    | Direct   | On                 |                |
-| 5      | SoA    | Virtual  | Off                |                |
-| 6      | SoA    | Virtual  | On                 |                |
-| 7      | SoA    | Direct   | Off                |                |
-| 8      | SoA    | Direct   | On                 | Full ECS       |
+| Config | Layout | Dispatch | Archetype Grouping | Label                  |
+|--------|--------|----------|--------------------|------------------------|
+| 1      | AoS    | Virtual  | Off                | Baseline OOP           |
+| 2      | AoS    | Virtual  | On                 | AoS Virtual Grouped    |
+| 3      | AoS    | Direct   | Off                | AoS Direct Ungrouped   |
+| 4      | AoS    | Direct   | On                 | AoS Direct Grouped     |
+| 5      | SoA    | Virtual  | Off                | SoA Virtual Ungrouped  |
+| 6      | SoA    | Virtual  | On                 | SoA Virtual Grouped    |
+| 7      | SoA    | Direct   | Off                | SoA Direct Ungrouped   |
+| 8      | SoA    | Direct   | On                 | Full ECS               |
 
 **Definitions:**
 - **AoS**: One heap-allocated object per entity (Array of Structs)
