@@ -151,12 +151,12 @@ single physical memory pool. There is no discrete VRAM boundary or PCIe bus to c
 
 Key differences from a typical x86 system with discrete memory:
 
-| Property          | M2 Max (ARM64 UMA)            | x86 + discrete GPU            |
-|-------------------|-------------------------------|-------------------------------|
-| Memory bus        | Internal SoC fabric (~400 GB/s) | PCIe Gen4 (64 GB/s typical)  |
-| CPU cache         | L1: 192 KB/P-core, L2: 12 MB (cluster) | L1: 32–64 KB, L2: 256 KB–1 MB, L3: 16–64 MB |
-| DRAM latency      | ~80–100 ns                    | ~80–100 ns (similar)          |
-| NUMA              | None (single memory pool)     | Often NUMA (multi-socket)     |
+| Property          | M2 Max (ARM64 UMA)                                      | x86 + discrete GPU                            |
+|-------------------|---------------------------------------------------------|-----------------------------------------------|
+| Memory bus        | Internal SoC fabric (~400 GB/s)                         | PCIe Gen4 (64 GB/s typical)                   |
+| CPU cache         | L1: 128 KB data / 192 KB instr per P-core, L2: 16 MB (cluster), SLC: 48 MB | L1: 32–64 KB, L2: 256 KB–1 MB, L3: 16–64 MB |
+| DRAM latency      | ~115 ns                                                 | ~80–100 ns (similar)                          |
+| NUMA              | None (single memory pool)                               | Often NUMA (multi-socket)                     |
 
 **Interpretation for this benchmark:** The SoA cache locality advantage (configs 7/8)
 is real on M2 Max but may appear less dramatic than on x86 because M2's L2 is large
@@ -164,6 +164,6 @@ and shared within a core cluster — the L2 miss penalty is lower than on many x
 On a system with 32 KB L1 and a cold L3, the SoA vs AoS difference would likely be
 more pronounced at smaller entity counts.
 
-The IPC benefit of eliminating virtual dispatch (direct vs virtual) should be visible
-at `-O2` because the M2's branch predictor handles indirect calls less efficiently
-than direct calls — vtable dispatch adds an indirect branch per entity.
+The overhead of virtual dispatch (direct vs virtual) is visible at `-O2`: vtable calls
+require an indirect branch per entity, which carries higher prediction overhead than
+direct calls — the target is not statically known at decode time.
