@@ -167,31 +167,3 @@ more pronounced at smaller entity counts.
 The IPC benefit of eliminating virtual dispatch (direct vs virtual) should be visible
 at `-O2` because the M2's branch predictor handles indirect calls less efficiently
 than direct calls — vtable dispatch adds an indirect branch per entity.
-
----
-
-## File Structure
-
-```
-benchmark/
-  common/
-    components.h    — Position, Velocity, Tag, UUID structs + Archetype enum
-    rng.h           — Seeded RNG (std::mt19937, seed=42), generateSpawnData()
-    simulation.h    — bounceUpdate() free function (shared by all 8 configs)
-    timer.h         — std::chrono wrapper, runBenchmark() template
-    signpost.h      — os_signpost RAII wrapper for xctrace interval annotation
-  oop/
-    particle.h      — Particle base class + TaggedParticle + SpecificParticle
-    world_aos.h/.cpp — AoS world (virtual + direct tick, grouped/ungrouped)
-  ecs/
-    archetype.h     — ArchetypeChunk (SoA per-archetype storage) + ChunkRef
-    world_soa.h/.cpp — SoA worlds: WorldSoADirect (configs 7/8),
-                       WorldSoAVirtual (configs 5/6)
-  configs/
-    config_result.h — ConfigResult struct + forward declarations
-    config_1.cpp through config_8.cpp — one translation unit per configuration
-main.cpp               — orchestration: validate correctness, time, write CSV
-collect_cache_stats.sh — xctrace collection script (L1D/L2/INST_RETIRED)
-CMakeLists.txt
-README.md
-```
