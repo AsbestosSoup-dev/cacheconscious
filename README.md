@@ -108,52 +108,37 @@ calls `std::mt19937(GLOBAL_SEED)` — the sequence is fully deterministic.
 
 ---
 
-## Collecting L1/L2 Cache Miss Rates on macOS (Instruments.app)
+## Collecting L1D Cache Miss Rates on macOS (Instruments.app)
 
 `perf stat` is not available on macOS/ARM64. Cache miss rates are collected using
-Apple Instruments. The binaries emit `os_signpost` intervals (subsystem
-`dev.asbestossoup.cacheconscious`) around each config's run so Instruments can
-slice counter samples per config.
+Apple Instruments. The binaries emit `os_signpost` intervals around each config's
+measurement loop so Instruments can slice counter samples per config via the
+Points of Interest track.
 
-### Option A: Collection script (recommended)
+### Setup
 
-```bash
-./collect_cache_stats.sh          # uses build_test/ by default
-./collect_cache_stats.sh build/   # or specify your build directory
-```
+1. Open Instruments.app and select the **CPU Counters** template
+2. Set the target binary to `cache_conscious_O2`
+3. Set **Working Directory** to the project root (not Automatic)
+4. Set **Recording Mode** to Deferred
+5. Under CPU Counters configuration, select **Guided** → **L1D Miss Sampling**
+6. Record
 
-This runs `xctrace` for `cache_conscious_O0` and `cache_conscious_O2`, collecting
-`L1D_CACHE_MISS_LD`, `L2_TLB_MISS_LD`, and `INST_RETIRED`. Traces are written to
-`traces/cache_conscious_O0.trace` and `traces/cache_conscious_O2.trace`.
+### Reading results
 
-Open a trace in Instruments.app:
-
-```bash
-open traces/cache_conscious_O2.trace
-```
-
-In the CPU Counters timeline, look for the signpost intervals labelled `Config1`
-through `Config8`. Click an interval to filter counter samples to that config's run.
-
-### Option B: Manual xctrace
-
-```bash
-xctrace record \
-  --template "CPU Counters" \
-  --output traces/manual.trace \
-  --launch -- ./build/cache_conscious_O2
-```
-
-Counter selection (`L1D_CACHE_MISS_LD`, `L2_TLB_MISS_LD`, `INST_RETIRED`) is
-configured inside Instruments.app after opening the trace — `xctrace record` does
-not accept counter names on the command line.
+After the run completes, open the **Points of Interest** track in the timeline.
+Each config's measurement loop appears as a named interval (`BenchmarkConfig`).
+Click an interval to filter the CPU Counters summary to that config's window —
+the summary shows **Cycles**, **L1D Cache Load Misses**, **L1D Cache Store Misses**,
+and **L1D TLB Misses** for that interval.
 
 ### Notes
 
-- `os_signpost` is sampling-based: xctrace attributes counter *samples* that fall
-  inside each interval, not exact PMU deltas. Use interval boundaries as a filter
-  in the CPU Counters timeline for per-config attribution.
-- To list all counter names available on your machine: `instruments -s counters`
+- `os_signpost` intervals cover the 1000 measured ticks only, not the 100 warmup
+  ticks or world construction.
+- Profiling overhead dilates wall-clock duration (~3x on M2 Max). Use counter
+  values normalized by entity count and tick count for cross-config comparison,
+  not raw durations.
 - On M2 Max, SIP does not block local Instruments.app profiling.
 - Trace files are large; `traces/` is gitignored.
 
