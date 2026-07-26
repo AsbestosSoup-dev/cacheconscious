@@ -3,9 +3,9 @@
 
 // ---- IEntityUpdater implementations ----
 
-void PVUpdater::update(Position& p, Velocity& v)   { bounceUpdate(p, v); }
-void PVTUpdater::update(Position& p, Velocity& v)  { bounceUpdate(p, v); }
-void PVTUUpdater::update(Position& p, Velocity& v) { bounceUpdate(p, v); }
+void PVUpdater::update(Position& p, Velocity& v, Tag&, UUID&)         { bounceUpdate(p, v); }
+void PVTUpdater::update(Position& p, Velocity& v, Tag& t, UUID&)      { bounceUpdateTagged(p, v, t); }
+void PVTUUpdater::update(Position& p, Velocity& v, Tag& t, UUID& u)   { bounceUpdateUUID(p, v, t, u); }
 
 // ---- Shared spawn helper ----
 
@@ -124,18 +124,27 @@ WorldSoADirect::WorldSoADirect(const SpawnData& spawn, bool grouped)
 
 void WorldSoADirect::tick() {
     if (grouped_) {
-        // Three tight loops — no archetype mixing, maximum cache locality
         for (std::size_t i = 0; i < pvChunk_.size(); ++i)
             bounceUpdate(pvChunk_.positions[i], pvChunk_.velocities[i]);
         for (std::size_t i = 0; i < pvtChunk_.size(); ++i)
-            bounceUpdate(pvtChunk_.positions[i], pvtChunk_.velocities[i]);
+            bounceUpdateTagged(pvtChunk_.positions[i], pvtChunk_.velocities[i], pvtChunk_.tags[i]);
         for (std::size_t i = 0; i < pvtuChunk_.size(); ++i)
-            bounceUpdate(pvtuChunk_.positions[i], pvtuChunk_.velocities[i]);
+            bounceUpdateUUID(pvtuChunk_.positions[i], pvtuChunk_.velocities[i],
+                             pvtuChunk_.tags[i], pvtuChunk_.uuids[i]);
     } else {
-        // Single loop over striped SoA — tag/UUID arrays exist in memory
-        // but are not read; they pollute cache lines for PV entities
-        for (std::size_t i = 0; i < flatPos_.size(); ++i)
-            bounceUpdate(flatPos_[i], flatVel_[i]);
+        for (std::size_t i = 0; i < flatPos_.size(); ++i) {
+            switch (flatArchetype_[i]) {
+                case Archetype::PV:
+                    bounceUpdate(flatPos_[i], flatVel_[i]);
+                    break;
+                case Archetype::PVT:
+                    bounceUpdateTagged(flatPos_[i], flatVel_[i], flatTag_[i]);
+                    break;
+                case Archetype::PVTU:
+                    bounceUpdateUUID(flatPos_[i], flatVel_[i], flatTag_[i], flatUUID_[i]);
+                    break;
+            }
+        }
     }
 }
 
@@ -206,16 +215,18 @@ void WorldSoAVirtual::tick() {
     if (grouped_) {
         // Chunks are iterated in order: PV, PVT, PVTU.
         // updaterPtrs_ is parallel to the concatenated chunk order.
+        static Tag dummyTag{0};
+        static UUID dummyUUID{0};
         std::size_t ptr = 0;
         for (std::size_t i = 0; i < pvChunk_.size(); ++i, ++ptr)
-            updaterPtrs_[ptr]->update(pvChunk_.positions[i], pvChunk_.velocities[i]);
+            updaterPtrs_[ptr]->update(pvChunk_.positions[i], pvChunk_.velocities[i], dummyTag, dummyUUID);
         for (std::size_t i = 0; i < pvtChunk_.size(); ++i, ++ptr)
-            updaterPtrs_[ptr]->update(pvtChunk_.positions[i], pvtChunk_.velocities[i]);
+            updaterPtrs_[ptr]->update(pvtChunk_.positions[i], pvtChunk_.velocities[i], pvtChunk_.tags[i], dummyUUID);
         for (std::size_t i = 0; i < pvtuChunk_.size(); ++i, ++ptr)
-            updaterPtrs_[ptr]->update(pvtuChunk_.positions[i], pvtuChunk_.velocities[i]);
+            updaterPtrs_[ptr]->update(pvtuChunk_.positions[i], pvtuChunk_.velocities[i], pvtuChunk_.tags[i], pvtuChunk_.uuids[i]);
     } else {
         for (std::size_t i = 0; i < flatPos_.size(); ++i)
-            updaterPtrs_[i]->update(flatPos_[i], flatVel_[i]);
+            updaterPtrs_[i]->update(flatPos_[i], flatVel_[i], flatTag_[i], flatUUID_[i]);
     }
 }
 

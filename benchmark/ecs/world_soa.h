@@ -9,13 +9,16 @@
 // because call site holds IEntityUpdater*, proving per-entity vtable overhead.
 class IEntityUpdater {
 public:
-    virtual void update(Position& pos, Velocity& vel) = 0;
+    // tag and uuid are passed for all archetypes; PV updater ignores them.
+    // Keeping a single virtual signature avoids per-archetype dispatch at the
+    // call site, preserving the vtable overhead the benchmark is measuring.
+    virtual void update(Position& pos, Velocity& vel, Tag& tag, UUID& uuid) = 0;
     virtual ~IEntityUpdater() = default;
 };
 
-class PVUpdater   : public IEntityUpdater { public: void update(Position& p, Velocity& v) override; };
-class PVTUpdater  : public IEntityUpdater { public: void update(Position& p, Velocity& v) override; };
-class PVTUUpdater : public IEntityUpdater { public: void update(Position& p, Velocity& v) override; };
+class PVUpdater   : public IEntityUpdater { public: void update(Position& p, Velocity& v, Tag& t, UUID& u) override; };
+class PVTUpdater  : public IEntityUpdater { public: void update(Position& p, Velocity& v, Tag& t, UUID& u) override; };
+class PVTUUpdater : public IEntityUpdater { public: void update(Position& p, Velocity& v, Tag& t, UUID& u) override; };
 
 // ---- WorldSoADirect: SoA storage, direct (non-virtual) dispatch — configs 7, 8 ----
 class WorldSoADirect {
